@@ -1,6 +1,8 @@
 defmodule Shmup.Game.GameState do
   @moduledoc false
 
+  alias Shmup.Game.Health
+
   @type phase :: :splash | :playing | :game_over
 
   @enforce_keys [:phase, :score, :tick, :width, :height]
@@ -54,6 +56,9 @@ defmodule Shmup.Game.GameState do
         y: h - 60,
         w: 36,
         h: 20,
+        hp: Health.max_hp(),
+        max_hp: Health.max_hp(),
+        invulnerable_until: nil,
         active_effects: %{},
         shield: false,
         shield_expires_at: nil

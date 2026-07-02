@@ -1,7 +1,7 @@
 defmodule Shmup.Game.Simulation do
   @moduledoc false
 
-  alias Shmup.Game.{Collision, Difficulty, GameState, Physics, Powerups}
+  alias Shmup.Game.{Collision, Difficulty, GameState, Health, Physics, Powerups}
 
   @player_fire_cooldown 10
   @points_per_kill 10
@@ -27,6 +27,7 @@ defmodule Shmup.Game.Simulation do
     |> resolve_powerup_pickup()
     |> cull_offscreen()
     |> absorb_shield()
+    |> apply_damage()
     |> check_player_death()
   end
 
@@ -298,8 +299,29 @@ defmodule Shmup.Game.Simulation do
     end
   end
 
-  defp check_player_death(%GameState{} = s) do
-    if Collision.enemy_hits_player?(s.enemy_bullets, s.player) do
+  defp apply_damage(%GameState{play_tick: pt, player: pl} = s) do
+    if invulnerable?(pl, pt) do
+      s
+    else
+      if Collision.enemy_hits_player?(s.enemy_bullets, pl) do
+        player = %{
+          pl
+          | hp: max(0, pl.hp - 1),
+            invulnerable_until: pt + Health.invulnerability_duration_ticks()
+        }
+
+        %{s | player: player}
+      else
+        s
+      end
+    end
+  end
+
+  defp invulnerable?(%{invulnerable_until: nil}, _play_tick), do: false
+  defp invulnerable?(%{invulnerable_until: until_tick}, play_tick), do: until_tick > play_tick
+
+  defp check_player_death(%GameState{player: %{hp: hp}} = s) do
+    if hp <= 0 do
       GameState.new_game_over(s)
     else
       s
