@@ -1,7 +1,7 @@
 defmodule Shmup.Game.Simulation do
   @moduledoc false
 
-  alias Shmup.Game.{Collision, Difficulty, GameState, Health, Physics, Powerups}
+  alias Shmup.Game.{Collision, Difficulty, Enemies, GameState, Health, Physics, Powerups}
 
   @player_fire_cooldown 10
   @points_per_kill 10
@@ -16,6 +16,7 @@ defmodule Shmup.Game.Simulation do
     s
     |> Map.update!(:tick, &(&1 + 1))
     |> advance_play_time()
+    |> maybe_spawn_boss()
     |> apply_input()
     |> tick_cooldowns()
     |> tick_effects()
@@ -95,19 +96,8 @@ defmodule Shmup.Game.Simulation do
     tier = s.difficulty_tier
     id = s.next_id
     mov = movement_for_tier(tier, id)
-    hp = Difficulty.enemy_hp(tier)
-
-    enemy = %{
-      id: id,
-      x: x * 1.0,
-      y: 30.0,
-      w: 32,
-      h: 28,
-      vy: 1.8,
-      vx: 0.0,
-      movement: mov,
-      hp: hp
-    }
+    kind = Enemies.pick_kind(tier, id)
+    enemy = build_enemy(kind, id, x * 1.0, mov, tier)
 
     interval = Difficulty.spawn_interval(tier)
 
@@ -116,6 +106,69 @@ defmodule Shmup.Game.Simulation do
       | enemies: [enemy | s.enemies],
         enemy_spawn_cd: interval,
         next_id: id + 1
+    }
+  end
+
+  defp build_enemy(:grunt, id, x, mov, tier) do
+    %{
+      id: id,
+      x: x,
+      y: 30.0,
+      w: 32,
+      h: 28,
+      vy: 1.8,
+      vx: 0.0,
+      movement: mov,
+      hp: Difficulty.enemy_hp(tier),
+      kind: :grunt
+    }
+  end
+
+  defp build_enemy(:tank, id, x, mov, tier) do
+    base_hp = Difficulty.enemy_hp(tier)
+
+    %{
+      id: id,
+      x: x,
+      y: 30.0,
+      w: round(32 * Enemies.tank_size_multiplier()),
+      h: round(28 * Enemies.tank_size_multiplier()),
+      vy: 1.8 * Enemies.tank_speed_multiplier(),
+      vx: 0.0,
+      movement: mov,
+      hp: round(base_hp * Enemies.tank_hp_multiplier()),
+      kind: :tank
+    }
+  end
+
+  defp maybe_spawn_boss(%GameState{difficulty_tier: tier, next_boss_tier: nbt} = s)
+       when tier < nbt,
+       do: s
+
+  defp maybe_spawn_boss(%GameState{} = s) do
+    tier = s.difficulty_tier
+    id = s.next_id
+    mov = movement_for_tier(tier, id)
+    base_hp = Difficulty.enemy_hp(tier)
+
+    boss = %{
+      id: id,
+      x: s.width / 2,
+      y: 30.0,
+      w: Enemies.boss_width(),
+      h: Enemies.boss_height(),
+      vy: 1.8 * Enemies.tank_speed_multiplier(),
+      vx: 0.0,
+      movement: mov,
+      hp: round(base_hp * Enemies.boss_hp_multiplier()),
+      kind: :boss
+    }
+
+    %{
+      s
+      | enemies: [boss | s.enemies],
+        next_id: id + 1,
+        next_boss_tier: s.next_boss_tier + Enemies.boss_tier_interval()
     }
   end
 
@@ -226,7 +279,12 @@ defmodule Shmup.Game.Simulation do
         @points_per_kill
       )
 
-    %{s | player_bullets: pbs, enemies: ens, score: s.score + pts}
+    boss_bonus =
+      killed
+      |> Enum.count(&(&1.kind == :boss))
+      |> Kernel.*(Enemies.boss_bonus_points())
+
+    %{s | player_bullets: pbs, enemies: ens, score: s.score + pts + boss_bonus}
     |> maybe_spawn_powerups(killed)
   end
 

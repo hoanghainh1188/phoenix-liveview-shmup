@@ -84,7 +84,7 @@ defmodule ShmupWeb.GameLive do
   end
 
   # Jason cannot encode enemy :movement tuples — only send drawable fields to the hook.
-  @enemy_snapshot_keys [:x, :y, :w, :h, :id, :hp]
+  @enemy_snapshot_keys [:x, :y, :w, :h, :id, :hp, :kind]
   @powerup_snapshot_keys [:id, :x, :y, :w, :h, :kind]
 
   defp snapshot(%GameState{phase: :playing} = g) do

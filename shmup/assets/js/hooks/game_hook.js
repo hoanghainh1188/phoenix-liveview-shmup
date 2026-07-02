@@ -149,7 +149,9 @@ export const GameHook = {
     }
     ;(p.player_bullets || []).forEach((b) => drawBox(b, "#fbbf24"))
     ;(p.enemy_bullets || []).forEach((b) => drawBox(b, "#f87171"))
-    ;(p.enemies || []).forEach((e) => drawBox(e, "#a78bfa"))
+
+    const enemyColors = { grunt: "#a78bfa", tank: "#f97316", boss: "#ef4444" }
+    ;(p.enemies || []).forEach((e) => drawBox(e, enemyColors[e.kind] || "#a78bfa"))
   },
 
   onPhase(p) {

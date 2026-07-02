@@ -25,7 +25,7 @@ description: "Task list for 005 shmup enemy variety and boss"
 
 **Purpose**: Xác nhận môi trường và đường dẫn trùng plan.
 
-- [ ] T001 Verify `shmup/mix.exs` exists and `cd shmup && mix compile` succeeds per `specs/005-shmup-enemy-variety/quickstart.md`
+- [x] T001 Verify `shmup/mix.exs` exists and `cd shmup && mix compile` succeeds per `specs/005-shmup-enemy-variety/quickstart.md`
 
 ---
 
@@ -35,9 +35,9 @@ description: "Task list for 005 shmup enemy variety and boss"
 
 **⚠️ CRITICAL**: Không triển khai US1–US3 cho đến khi phase này hoàn tất.
 
-- [ ] T002 [P] Create `shmup/lib/shmup/game/enemies.ex` exporting parameter helpers (`tank_min_tier/0`, `tank_chance_pct/0`, `tank_hp_multiplier/0`, `tank_speed_multiplier/0`, `tank_size_multiplier/0`, `boss_tier_interval/0`, `boss_hp_multiplier/0`, `boss_bonus_points/0`, `boss_width/0`, `boss_height/0`) and `pick_kind/2` aligned with `specs/005-shmup-enemy-variety/research.md` §1, §8
-- [ ] T003 [P] Extend `shmup/lib/shmup/game/game_state.ex`: add `next_boss_tier: Enemies.boss_tier_interval()` to `new_playing/0` per `specs/005-shmup-enemy-variety/data-model.md`
-- [ ] T004 [P] Update existing test fixtures that build enemy maps by hand (e.g. `static_enemy/2` in `shmup/test/shmup/game/simulation_test.exs`) to include `kind: :grunt` so pre-005 tests keep passing once code reads `enemy.kind`
+- [x] T002 [P] Create `shmup/lib/shmup/game/enemies.ex` exporting parameter helpers (`tank_min_tier/0`, `tank_chance_pct/0`, `tank_hp_multiplier/0`, `tank_speed_multiplier/0`, `tank_size_multiplier/0`, `boss_tier_interval/0`, `boss_hp_multiplier/0`, `boss_bonus_points/0`, `boss_width/0`, `boss_height/0`) and `pick_kind/2` aligned with `specs/005-shmup-enemy-variety/research.md` §1, §8
+- [x] T003 [P] Extend `shmup/lib/shmup/game/game_state.ex`: add `next_boss_tier: Enemies.boss_tier_interval()` to `new_playing/0` per `specs/005-shmup-enemy-variety/data-model.md`
+- [x] T004 [P] Update existing test fixtures that build enemy maps by hand (e.g. `static_enemy/2` in `shmup/test/shmup/game/simulation_test.exs`) to include `kind: :grunt` so pre-005 tests keep passing once code reads `enemy.kind`
 
 **Checkpoint**: Foundation ready — user story implementation can begin
 
@@ -51,8 +51,8 @@ description: "Task list for 005 shmup enemy variety and boss"
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] In `shmup/lib/shmup/game/simulation.ex`: in `spawn_one_enemy/1`, call `Enemies.pick_kind(tier, id)` and branch enemy construction — `:grunt` keeps existing hp/size/vy; `:tank` multiplies `Difficulty.enemy_hp(tier)` by `Enemies.tank_hp_multiplier/0`, `vy` by `Enemies.tank_speed_multiplier/0`, and `w`/`h` by `Enemies.tank_size_multiplier/0` (rounded); both set `kind` on the enemy map
-- [ ] T006 [P] [US1] In `shmup/lib/shmup_web/live/game_live.ex`: add `:kind` to `@enemy_snapshot_keys` per `specs/005-shmup-enemy-variety/contracts/liveview-hook-events.md`
+- [x] T005 [US1] In `shmup/lib/shmup/game/simulation.ex`: in `spawn_one_enemy/1`, call `Enemies.pick_kind(tier, id)` and branch enemy construction — `:grunt` keeps existing hp/size/vy; `:tank` multiplies `Difficulty.enemy_hp(tier)` by `Enemies.tank_hp_multiplier/0`, `vy` by `Enemies.tank_speed_multiplier/0`, and `w`/`h` by `Enemies.tank_size_multiplier/0` (rounded); both set `kind` on the enemy map
+- [x] T006 [P] [US1] In `shmup/lib/shmup_web/live/game_live.ex`: add `:kind` to `@enemy_snapshot_keys` per `specs/005-shmup-enemy-variety/contracts/liveview-hook-events.md`
 
 **Checkpoint**: User Story 1 delivers observable grunt/tank variety with correct relative HP and speed (boss not yet implemented)
 
@@ -66,8 +66,8 @@ description: "Task list for 005 shmup enemy variety and boss"
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] In `shmup/lib/shmup/game/simulation.ex`: add a new private stage `maybe_spawn_boss/1`, called in `step/1` right after `advance_play_time/1` — when `s.difficulty_tier >= s.next_boss_tier`, prepend a new enemy with `kind: :boss`, `id: s.next_id`, `x: s.width / 2`, `y: 30.0`, `w: Enemies.boss_width/0`, `h: Enemies.boss_height/0`, `hp: round(Difficulty.enemy_hp(tier) * Enemies.boss_hp_multiplier/0)`, movement from the existing `movement_for_tier/2`, unconditionally (bypassing `Difficulty.max_enemies/1` per `research.md` §4); bump `next_id` and set `next_boss_tier = next_boss_tier + Enemies.boss_tier_interval/0`
-- [ ] T008 [US2] In `shmup/lib/shmup/game/simulation.ex`: extend `resolve_hits/1` — after the existing base-score addition from `Collision.resolve_player_bullets_vs_enemies/3`'s `killed` list, add `Enemies.boss_bonus_points/0` to `state.score` for each killed enemy with `kind == :boss` (no change to `Collision`'s signature or behavior)
+- [x] T007 [US2] In `shmup/lib/shmup/game/simulation.ex`: add a new private stage `maybe_spawn_boss/1`, called in `step/1` right after `advance_play_time/1` — when `s.difficulty_tier >= s.next_boss_tier`, prepend a new enemy with `kind: :boss`, `id: s.next_id`, `x: s.width / 2`, `y: 30.0`, `w: Enemies.boss_width/0`, `h: Enemies.boss_height/0`, `hp: round(Difficulty.enemy_hp(tier) * Enemies.boss_hp_multiplier/0)`, movement from the existing `movement_for_tier/2`, unconditionally (bypassing `Difficulty.max_enemies/1` per `research.md` §4); bump `next_id` and set `next_boss_tier = next_boss_tier + Enemies.boss_tier_interval/0`
+- [x] T008 [US2] In `shmup/lib/shmup/game/simulation.ex`: extend `resolve_hits/1` — after the existing base-score addition from `Collision.resolve_player_bullets_vs_enemies/3`'s `killed` list, add `Enemies.boss_bonus_points/0` to `state.score` for each killed enemy with `kind == :boss` (no change to `Collision`'s signature or behavior)
 
 **Checkpoint**: User Story 2 complete — boss spawns exactly once per tier milestone with outsized HP and score reward
 
@@ -81,7 +81,7 @@ description: "Task list for 005 shmup enemy variety and boss"
 
 ### Implementation for User Story 3
 
-- [ ] T009 [US3] In `shmup/assets/js/hooks/game_hook.js`: replace the flat `drawBox(e, "#a78bfa")` call for `p.enemies` with a per-kind color lookup (`grunt: "#a78bfa"`, `tank: "#f97316"`, `boss: "#ef4444"`, fallback to the existing purple for unknown/missing `kind`)
+- [x] T009 [US3] In `shmup/assets/js/hooks/game_hook.js`: replace the flat `drawBox(e, "#a78bfa")` call for `p.enemies` with a per-kind color lookup (`grunt: "#a78bfa"`, `tank: "#f97316"`, `boss: "#ef4444"`, fallback to the existing purple for unknown/missing `kind`)
 
 **Checkpoint**: User Story 3 complete — enemy kinds are visually distinguishable at a glance
 
@@ -91,9 +91,9 @@ description: "Task list for 005 shmup enemy variety and boss"
 
 **Purpose**: Xác nhận regression toàn diện và quickstart.
 
-- [ ] T010 [P] Add ExUnit coverage in `shmup/test/shmup/game/enemies_test.exs` for `Enemies` parameter sanity and `pick_kind/2` determinism (same tier/id always yields the same kind; below `tank_min_tier` always yields `:grunt`)
-- [ ] T011 [P] Add ExUnit coverage in `shmup/test/shmup/game/simulation_test.exs` for: tank hp/speed/size vs. grunt at the same tier, boss spawning exactly once at a tier milestone (not spawning again before the next milestone), boss score bonus applied on top of the base kill score, and `GameState.new_playing/0` resetting `next_boss_tier`
-- [ ] T012 Run `cd shmup && mix test` and manual validation steps in `specs/005-shmup-enemy-variety/quickstart.md`
+- [x] T010 [P] Add ExUnit coverage in `shmup/test/shmup/game/enemies_test.exs` for `Enemies` parameter sanity and `pick_kind/2` determinism (same tier/id always yields the same kind; below `tank_min_tier` always yields `:grunt`)
+- [x] T011 [P] Add ExUnit coverage in `shmup/test/shmup/game/simulation_test.exs` for: tank hp/speed/size vs. grunt at the same tier, boss spawning exactly once at a tier milestone (not spawning again before the next milestone), boss score bonus applied on top of the base kill score, and `GameState.new_playing/0` resetting `next_boss_tier`
+- [x] T012 Run `cd shmup && mix test` and manual validation steps in `specs/005-shmup-enemy-variety/quickstart.md`
 
 ---
 
