@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: shmup
+    env: docker
+    plan: free
+    dockerfilePath: ./shmup/Dockerfile
+    dockerContext: ./shmup
+    healthCheckPath: /
+    envVars:
+      - key: PHX_SERVER
+        value: "true"
+      - key: PHX_HOST
+        fromService:
+          type: web
+          name: shmup
+          property: host
+      - key: SECRET_KEY_BASE
+        generateValue: true
