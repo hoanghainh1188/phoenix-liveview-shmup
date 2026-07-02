@@ -25,7 +25,7 @@ description: "Task list for 003 shmup power-ups"
 
 **Purpose**: Xác nhận môi trường và đường dẫn trùng plan.
 
-- [ ] T001 Verify `shmup/mix.exs` exists and `cd shmup && mix compile` succeeds per `specs/003-shmup-powerups/quickstart.md`
+- [x] T001 Verify `shmup/mix.exs` exists and `cd shmup && mix compile` succeeds per `specs/003-shmup-powerups/quickstart.md`
 
 ---
 
@@ -35,8 +35,8 @@ description: "Task list for 003 shmup power-ups"
 
 **⚠️ CRITICAL**: Không triển khai US1–US3 cho đến khi phase này hoàn tất.
 
-- [ ] T002 [P] Create `shmup/lib/shmup/game/powerups.ex` exporting parameter helpers (`drop_chance_pct/0`, `max_falling_powerups/0`, `fall_speed/0`, `rapid_fire_duration_ticks/0`, `rapid_fire_cooldown_ticks/0`, `multi_shot_duration_ticks/0`, `multi_shot_bullet_count/0`, `shield_duration_ticks/0`) aligned with `specs/003-shmup-powerups/research.md` §6
-- [ ] T003 [P] Extend `shmup/lib/shmup/game/game_state.ex`: add `powerups: []` and `next_powerup_id: 1` to `GameState`; add `active_effects: %{}`, `shield: false`, `shield_expires_at: nil` to the player map built in `new_playing/0` per `specs/003-shmup-powerups/data-model.md`
+- [x] T002 [P] Create `shmup/lib/shmup/game/powerups.ex` exporting parameter helpers (`drop_chance_pct/0`, `max_falling_powerups/0`, `fall_speed/0`, `rapid_fire_duration_ticks/0`, `rapid_fire_cooldown_ticks/0`, `multi_shot_duration_ticks/0`, `multi_shot_bullet_count/0`, `shield_duration_ticks/0`) aligned with `specs/003-shmup-powerups/research.md` §6
+- [x] T003 [P] Extend `shmup/lib/shmup/game/game_state.ex`: add `powerups: []` and `next_powerup_id: 1` to `GameState`; add `active_effects: %{}`, `shield: false`, `shield_expires_at: nil` to the player map built in `new_playing/0` per `specs/003-shmup-powerups/data-model.md`
 
 **Checkpoint**: Foundation ready — user story implementation can begin
 
@@ -50,11 +50,11 @@ description: "Task list for 003 shmup power-ups"
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] In `shmup/lib/shmup/game/simulation.ex`: in `resolve_hits/1` (or a new stage called right after it), when an enemy's `hp` reaches ≤ 0 in that step, compute a deterministic roll from the killed enemy's `id` (per `research.md` §1) against `Powerups.drop_chance_pct/0`; if it hits and `length(state.powerups) < Powerups.max_falling_powerups/0`, prepend a new `%{id, x, y, w: _, h: _, vy: Powerups.fall_speed(), kind}` powerup (kind chosen deterministically from the enemy id per research §1), incrementing `next_powerup_id`
-- [ ] T005 [P] [US1] In `shmup/lib/shmup/game/simulation.ex`: `move_all/1` — advance each powerup's `y` by its `vy` each tick (same pattern as bullets)
-- [ ] T006 [P] [US1] In `shmup/lib/shmup/game/collision.ex`: add `resolve_player_vs_powerups/2` (or similar) that returns `{kept_powerups, picked_up_kinds}` using `aabb_overlap?/2` between player and each powerup; wire into `Simulation.step/1` so a pickup removes the powerup from `state.powerups` and applies the effect described in Phase 4/5 (activation applies even before those phases land — implement pickup plumbing here, effect activation itself lands with US2/US3)
-- [ ] T007 [P] [US1] In `shmup/lib/shmup/game/simulation.ex`: `cull_offscreen/1` — filter `powerups` using the same `y < h + 80` threshold as enemies
-- [ ] T008 [P] [US1] In `shmup/lib/shmup_web/live/game_live.ex`: add `powerups` (mapped to JSON-safe keys `[:id, :x, :y, :w, :h, :kind]`) to `snapshot/1` per `specs/003-shmup-powerups/contracts/liveview-hook-events.md`
+- [x] T004 [US1] In `shmup/lib/shmup/game/simulation.ex`: in `resolve_hits/1` (or a new stage called right after it), when an enemy's `hp` reaches ≤ 0 in that step, compute a deterministic roll from the killed enemy's `id` (per `research.md` §1) against `Powerups.drop_chance_pct/0`; if it hits and `length(state.powerups) < Powerups.max_falling_powerups/0`, prepend a new `%{id, x, y, w: _, h: _, vy: Powerups.fall_speed(), kind}` powerup (kind chosen deterministically from the enemy id per research §1), incrementing `next_powerup_id`
+- [x] T005 [P] [US1] In `shmup/lib/shmup/game/simulation.ex`: `move_all/1` — advance each powerup's `y` by its `vy` each tick (same pattern as bullets)
+- [x] T006 [P] [US1] In `shmup/lib/shmup/game/collision.ex`: add `resolve_player_vs_powerups/2` (or similar) that returns `{kept_powerups, picked_up_kinds}` using `aabb_overlap?/2` between player and each powerup; wire into `Simulation.step/1` so a pickup removes the powerup from `state.powerups` and applies the effect described in Phase 4/5 (activation applies even before those phases land — implement pickup plumbing here, effect activation itself lands with US2/US3)
+- [x] T007 [P] [US1] In `shmup/lib/shmup/game/simulation.ex`: `cull_offscreen/1` — filter `powerups` using the same `y < h + 80` threshold as enemies
+- [x] T008 [P] [US1] In `shmup/lib/shmup_web/live/game_live.ex`: add `powerups` (mapped to JSON-safe keys `[:id, :x, :y, :w, :h, :kind]`) to `snapshot/1` per `specs/003-shmup-powerups/contracts/liveview-hook-events.md`
 
 **Checkpoint**: User Story 1 delivers observable drop + pickup mechanic (no gameplay effect required to be visible yet)
 
@@ -68,9 +68,9 @@ description: "Task list for 003 shmup power-ups"
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] In `shmup/lib/shmup/game/simulation.ex`: when a pickup from US1 resolves to `:rapid_fire` or `:multi_shot`, set `player.active_effects[kind] = play_tick + duration(kind)` (assign, not accumulate — refresh semantics per `research.md` §2–3)
-- [ ] T010 [US2] In `shmup/lib/shmup/game/simulation.ex`: add an expiry stage (new private function, called each tick from `step/1` while `:playing`) that drops any `active_effects` entry whose `expires_at_tick <= play_tick`
-- [ ] T011 [US2] In `shmup/lib/shmup/game/simulation.ex`: update `fire_player_bullet/1` — cooldown becomes `Powerups.rapid_fire_cooldown_ticks/0` when `Map.has_key?(player.active_effects, :rapid_fire)`, else the existing `@player_fire_cooldown`; bullet count becomes `Powerups.multi_shot_bullet_count/0` (fanned `vx` offsets, same `vy`) when `Map.has_key?(player.active_effects, :multi_shot)`, else the existing single straight bullet — both conditions independent so they combine naturally (FR-007)
+- [x] T009 [US2] In `shmup/lib/shmup/game/simulation.ex`: when a pickup from US1 resolves to `:rapid_fire` or `:multi_shot`, set `player.active_effects[kind] = play_tick + duration(kind)` (assign, not accumulate — refresh semantics per `research.md` §2–3)
+- [x] T010 [US2] In `shmup/lib/shmup/game/simulation.ex`: add an expiry stage (new private function, called each tick from `step/1` while `:playing`) that drops any `active_effects` entry whose `expires_at_tick <= play_tick`
+- [x] T011 [US2] In `shmup/lib/shmup/game/simulation.ex`: update `fire_player_bullet/1` — cooldown becomes `Powerups.rapid_fire_cooldown_ticks/0` when `Map.has_key?(player.active_effects, :rapid_fire)`, else the existing `@player_fire_cooldown`; bullet count becomes `Powerups.multi_shot_bullet_count/0` (fanned `vx` offsets, same `vy`) when `Map.has_key?(player.active_effects, :multi_shot)`, else the existing single straight bullet — both conditions independent so they combine naturally (FR-007)
 
 **Checkpoint**: User Story 2 complete — rapid_fire and multi_shot are pickable, timed, refreshable, and combinable
 
@@ -84,10 +84,10 @@ description: "Task list for 003 shmup power-ups"
 
 ### Implementation for User Story 3
 
-- [ ] T012 [US3] In `shmup/lib/shmup/game/simulation.ex`: when a pickup from US1 resolves to `:shield`, set `player.shield = true`, `player.shield_expires_at = play_tick + Powerups.shield_duration_ticks/0` (refresh if already active, per `research.md` §3)
-- [ ] T013 [US3] In `shmup/lib/shmup/game/simulation.ex`: extend the expiry stage from T010 to also clear `shield`/`shield_expires_at` back to `false`/`nil` when `shield_expires_at <= play_tick`
-- [ ] T014 [US3] In `shmup/lib/shmup/game/collision.ex`: add `absorb_shield_hit/1` (or extend the existing enemy-bullet-vs-player check) that, when `player.shield == true` and an enemy bullet overlaps the player, removes that bullet from `enemy_bullets` and clears `shield`/`shield_expires_at`, returning enough info for `Simulation` to skip `check_player_death/1` for that tick
-- [ ] T015 [US3] In `shmup/lib/shmup/game/simulation.ex`: wire T014 into `step/1` **before** `check_player_death/1` so an absorbed hit never reaches the death check that tick (per `data-model.md` "Va chạm — mở rộng luật hiện có")
+- [x] T012 [US3] In `shmup/lib/shmup/game/simulation.ex`: when a pickup from US1 resolves to `:shield`, set `player.shield = true`, `player.shield_expires_at = play_tick + Powerups.shield_duration_ticks/0` (refresh if already active, per `research.md` §3)
+- [x] T013 [US3] In `shmup/lib/shmup/game/simulation.ex`: extend the expiry stage from T010 to also clear `shield`/`shield_expires_at` back to `false`/`nil` when `shield_expires_at <= play_tick`
+- [x] T014 [US3] In `shmup/lib/shmup/game/collision.ex`: add `absorb_shield_hit/1` (or extend the existing enemy-bullet-vs-player check) that, when `player.shield == true` and an enemy bullet overlaps the player, removes that bullet from `enemy_bullets` and clears `shield`/`shield_expires_at`, returning enough info for `Simulation` to skip `check_player_death/1` for that tick
+- [x] T015 [US3] In `shmup/lib/shmup/game/simulation.ex`: wire T014 into `step/1` **before** `check_player_death/1` so an absorbed hit never reaches the death check that tick (per `data-model.md` "Va chạm — mở rộng luật hiện có")
 
 **Checkpoint**: User Story 3 complete — shield absorbs exactly one hit, expires if unused, and never inherits across games (FR-009, verified by T003's `new_playing/0` reset)
 
@@ -97,9 +97,9 @@ description: "Task list for 003 shmup power-ups"
 
 **Purpose**: Snapshot HUD tối thiểu, xác nhận regression và quickstart.
 
-- [ ] T016 [P] In `shmup/lib/shmup_web/live/game_live.ex`: add `player_effects` (`%{rapid_fire: boolean, multi_shot: boolean, shield: boolean}` derived from `active_effects`/`shield`) to `snapshot/1` per contracts
-- [ ] T017 [P] Optionally render falling powerups and active-effect indicators in `shmup/assets/js/hooks/game_hook.js` when the `frame` payload includes `powerups`/`player_effects` (debug-text style, matching the existing `difficulty_tier` HUD line)
-- [ ] T018 Run `cd shmup && mix test` and manual validation steps in `specs/003-shmup-powerups/quickstart.md`
+- [x] T016 [P] In `shmup/lib/shmup_web/live/game_live.ex`: add `player_effects` (`%{rapid_fire: boolean, multi_shot: boolean, shield: boolean}` derived from `active_effects`/`shield`) to `snapshot/1` per contracts
+- [x] T017 [P] Optionally render falling powerups and active-effect indicators in `shmup/assets/js/hooks/game_hook.js` when the `frame` payload includes `powerups`/`player_effects` (debug-text style, matching the existing `difficulty_tier` HUD line)
+- [x] T018 Run `cd shmup && mix test` and manual validation steps in `specs/003-shmup-powerups/quickstart.md`
 
 ---
 

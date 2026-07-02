@@ -125,6 +125,20 @@ export const GameHook = {
       ctx.fillText(`Tier ${p.difficulty_tier} · t=${p.play_tick ?? p.tick}`, 8, 16)
     }
 
+    if (p.player_effects) {
+      const active = Object.entries(p.player_effects)
+        .filter(([, on]) => on)
+        .map(([name]) => name)
+      if (active.length > 0) {
+        ctx.fillStyle = "#34d399"
+        ctx.font = "12px monospace"
+        ctx.fillText(active.join(" · "), 8, 32)
+      }
+    }
+
+    const powerupColors = { rapid_fire: "#fb923c", multi_shot: "#38bdf8", shield: "#34d399" }
+    ;(p.powerups || []).forEach((pu) => drawBox(pu, powerupColors[pu.kind] || "#facc15"))
+
     drawBox(p.player, "#38bdf8")
     ;(p.player_bullets || []).forEach((b) => drawBox(b, "#fbbf24"))
     ;(p.enemy_bullets || []).forEach((b) => drawBox(b, "#f87171"))
