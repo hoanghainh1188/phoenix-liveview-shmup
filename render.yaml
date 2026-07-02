@@ -14,5 +14,10 @@ services:
           type: web
           name: shmup
           property: host
+      # Render's `generateValue: true` produces a value shorter than the 64
+      # bytes Phoenix's cookie store requires for secret_key_base, which
+      # crashes every request with "cookie store expects conn.secret_key_base
+      # to be at least 64 bytes". Set this manually in the Render dashboard
+      # instead, using a value from `mix phx.gen.secret` (run from `shmup/`).
       - key: SECRET_KEY_BASE
-        generateValue: true
+        sync: false
