@@ -1,7 +1,7 @@
 defmodule Shmup.Game.GameState do
   @moduledoc false
 
-  alias Shmup.Game.Health
+  alias Shmup.Game.{Enemies, Health}
 
   @type phase :: :splash | :playing | :game_over
 
@@ -24,7 +24,8 @@ defmodule Shmup.Game.GameState do
     enemy_fire_cd: 0,
     pending_input: %{cx: 0.0, cy: 0.0, primary: false},
     difficulty_tier: 0,
-    play_tick: 0
+    play_tick: 0,
+    next_boss_tier: 1
   ]
 
   @doc "Logical playfield size in game units (matches hook canvas coordinate system)."
@@ -74,7 +75,8 @@ defmodule Shmup.Game.GameState do
       enemy_fire_cd: 0,
       pending_input: %{cx: w / 2, cy: h - 60, primary: false},
       difficulty_tier: 0,
-      play_tick: 0
+      play_tick: 0,
+      next_boss_tier: Enemies.boss_tier_interval()
     }
   end
 

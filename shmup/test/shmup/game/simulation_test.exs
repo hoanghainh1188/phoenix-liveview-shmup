@@ -1,10 +1,21 @@
 defmodule Shmup.Game.SimulationTest do
   use ExUnit.Case, async: true
 
-  alias Shmup.Game.{GameState, Health, Powerups, Simulation}
+  alias Shmup.Game.{Difficulty, Enemies, GameState, Health, Powerups, Simulation}
 
-  defp static_enemy(id, hp) do
-    %{id: id, x: 100.0, y: 100.0, w: 32, h: 28, vy: 0.0, vx: 0.0, movement: :straight, hp: hp}
+  defp static_enemy(id, hp, kind \\ :grunt) do
+    %{
+      id: id,
+      x: 100.0,
+      y: 100.0,
+      w: 32,
+      h: 28,
+      vy: 0.0,
+      vx: 0.0,
+      movement: :straight,
+      hp: hp,
+      kind: kind
+    }
   end
 
   defp static_bullet do
@@ -22,6 +33,7 @@ defmodule Shmup.Game.SimulationTest do
     assert state.player.hp == Health.max_hp()
     assert state.player.max_hp == Health.max_hp()
     assert state.player.invulnerable_until == nil
+    assert state.next_boss_tier == Enemies.boss_tier_interval()
   end
 
   test "killing an enemy below the drop threshold spawns the deterministic powerup kind" do
@@ -313,5 +325,80 @@ defmodule Shmup.Game.SimulationTest do
     new_state = Simulation.step(state)
 
     assert new_state.powerups == []
+  end
+
+  test "spawning at a tank-selected id produces a slower, tougher, larger enemy than a grunt" do
+    base = GameState.new_playing()
+
+    tank_state =
+      struct!(base, difficulty_tier: 2, next_id: 3, enemy_spawn_cd: 0)
+
+    tank_result = Simulation.step(tank_state)
+    assert [tank] = tank_result.enemies
+    assert tank.kind == :tank
+    assert tank.hp == round(Difficulty.enemy_hp(2) * Enemies.tank_hp_multiplier())
+    assert_in_delta tank.vy, 1.8 * Enemies.tank_speed_multiplier(), 0.001
+    assert tank.w == round(32 * Enemies.tank_size_multiplier())
+
+    grunt_state =
+      struct!(base, difficulty_tier: 2, next_id: 1, enemy_spawn_cd: 0)
+
+    grunt_result = Simulation.step(grunt_state)
+    assert [grunt] = grunt_result.enemies
+    assert grunt.kind == :grunt
+    assert grunt.hp == Difficulty.enemy_hp(2)
+    assert_in_delta grunt.vy, 1.8, 0.001
+    assert grunt.w == 32
+
+    assert tank.hp > grunt.hp
+    assert tank.vy < grunt.vy
+    assert tank.w > grunt.w
+  end
+
+  test "below tank_min_tier every spawn is a grunt regardless of id" do
+    base = GameState.new_playing()
+    state = struct!(base, difficulty_tier: 0, next_id: 3, enemy_spawn_cd: 0)
+
+    new_state = Simulation.step(state)
+
+    assert [enemy] = new_state.enemies
+    assert enemy.kind == :grunt
+  end
+
+  test "a boss spawns exactly once when difficulty_tier reaches next_boss_tier" do
+    base = GameState.new_playing()
+    assert base.next_boss_tier == Enemies.boss_tier_interval()
+
+    state = struct!(base, difficulty_tier: Enemies.boss_tier_interval(), enemy_spawn_cd: 999)
+
+    new_state = Simulation.step(state)
+
+    assert [boss] = new_state.enemies
+    assert boss.kind == :boss
+
+    assert boss.hp ==
+             round(
+               Difficulty.enemy_hp(Enemies.boss_tier_interval()) * Enemies.boss_hp_multiplier()
+             )
+
+    assert new_state.next_boss_tier == Enemies.boss_tier_interval() * 2
+
+    # tier hasn't moved past the same milestone yet — stepping again must not spawn a second boss
+    no_double_spawn = Simulation.step(new_state)
+    assert length(no_double_spawn.enemies) == 1
+  end
+
+  test "killing a boss awards a large bonus on top of the base kill score" do
+    base = GameState.new_playing()
+    boss = static_enemy(1, 1, :boss)
+    bullet = static_bullet()
+
+    state =
+      struct!(base, enemies: [boss], player_bullets: [bullet], enemy_spawn_cd: 999)
+
+    new_state = Simulation.step(state)
+
+    assert new_state.enemies == []
+    assert new_state.score == 10 + Enemies.boss_bonus_points()
   end
 end
