@@ -25,7 +25,7 @@ description: "Task list for 006 shmup hit feedback"
 
 **Purpose**: Xác nhận môi trường và đường dẫn trùng plan.
 
-- [ ] T001 Verify `shmup/mix.exs` exists and `cd shmup && mix compile` succeeds per `specs/006-shmup-hit-feedback/quickstart.md`
+- [x] T001 Verify `shmup/mix.exs` exists and `cd shmup && mix compile` succeeds per `specs/006-shmup-hit-feedback/quickstart.md`
 
 ---
 
@@ -35,7 +35,7 @@ description: "Task list for 006 shmup hit feedback"
 
 **⚠️ CRITICAL**: Không triển khai US1–US3 cho đến khi phase này hoàn tất.
 
-- [ ] T002 [P] Extend `shmup/lib/shmup/game/game_state.ex`: add `kill_events: []` to `new_playing/0` per `specs/006-shmup-hit-feedback/data-model.md`
+- [x] T002 [P] Extend `shmup/lib/shmup/game/game_state.ex`: add `kill_events: []` to `new_playing/0` per `specs/006-shmup-hit-feedback/data-model.md`
 
 **Checkpoint**: Foundation ready — user story implementation can begin
 
@@ -49,9 +49,9 @@ description: "Task list for 006 shmup hit feedback"
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] In `shmup/lib/shmup/game/simulation.ex`: in `resolve_hits/1`, add `kill_events: Enum.map(killed, &Map.take(&1, [:x, :y, :kind]))` to the returned state (reusing the existing `killed` list from `Collision.resolve_player_bullets_vs_enemies/3` — no change to `Collision`'s signature)
-- [ ] T004 [P] [US1] In `shmup/lib/shmup_web/live/game_live.ex`: add `kill_events: g.kill_events` to `snapshot/1`'s `:playing` branch per `specs/006-shmup-hit-feedback/contracts/liveview-hook-events.md`
-- [ ] T005 [US1] In `shmup/assets/js/hooks/game_hook.js`: add an `EXPLOSION_LIFETIME_MS` constant and `this.explosions = []` initialized in `mounted()`; in `draw(p)`, push a new `{x, y, kind, bornAt: performance.now()}` entry for each item in `p.kill_events`, then filter out entries older than `EXPLOSION_LIFETIME_MS`, then render each remaining explosion (radius/alpha interpolated by age) using the existing `enemyColors` lookup by `kind` for consistency with enemy rendering
+- [x] T003 [US1] In `shmup/lib/shmup/game/simulation.ex`: in `resolve_hits/1`, add `kill_events: Enum.map(killed, &Map.take(&1, [:x, :y, :kind]))` to the returned state (reusing the existing `killed` list from `Collision.resolve_player_bullets_vs_enemies/3` — no change to `Collision`'s signature)
+- [x] T004 [P] [US1] In `shmup/lib/shmup_web/live/game_live.ex`: add `kill_events: g.kill_events` to `snapshot/1`'s `:playing` branch per `specs/006-shmup-hit-feedback/contracts/liveview-hook-events.md`
+- [x] T005 [US1] In `shmup/assets/js/hooks/game_hook.js`: add an `EXPLOSION_LIFETIME_MS` constant and `this.explosions = []` initialized in `mounted()`; in `draw(p)`, push a new `{x, y, kind, bornAt: performance.now()}` entry for each item in `p.kill_events`, then filter out entries older than `EXPLOSION_LIFETIME_MS`, then render each remaining explosion (radius/alpha interpolated by age) using the existing `enemyColors` lookup by `kind` for consistency with enemy rendering
 
 **Checkpoint**: User Story 1 delivers a clear visual confirmation exactly when and where a real server-confirmed kill happens
 
@@ -65,9 +65,9 @@ description: "Task list for 006 shmup hit feedback"
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] In `shmup/lib/shmup_web/live/game_live.ex`: add `id="score-value"` to the `<span>` displaying `@game.score` in the `:playing` branch of `render/1`
-- [ ] T007 [P] [US2] In `shmup/assets/css/app.css`: add a `@keyframes score-pulse` animation (brief scale/color highlight, ~300–400ms) and a `.score-pulse` class applying it — plain CSS, no `@apply` per repo convention
-- [ ] T008 [US2] In `shmup/assets/js/hooks/game_hook.js`: add `this._lastScore = 0` initialized in `mounted()`; in `draw(p)`, when `p.score > this._lastScore`, look up `this.el.querySelector("#score-value")`, remove then re-add the `score-pulse` class (with a forced reflow, e.g. reading `el.offsetWidth`, so the animation restarts on rapid consecutive triggers) — then unconditionally set `this._lastScore = p.score` at the end of `draw(p)`
+- [x] T006 [US2] In `shmup/lib/shmup_web/live/game_live.ex`: add `id="score-value"` to the `<span>` displaying `@game.score` in the `:playing` branch of `render/1`
+- [x] T007 [P] [US2] In `shmup/assets/css/app.css`: add a `@keyframes score-pulse` animation (brief scale/color highlight, ~300–400ms) and a `.score-pulse` class applying it — plain CSS, no `@apply` per repo convention
+- [x] T008 [US2] In `shmup/assets/js/hooks/game_hook.js`: add `this._lastScore = 0` initialized in `mounted()`; in `draw(p)`, when `p.score > this._lastScore`, look up `this.el.querySelector("#score-value")`, remove then re-add the `score-pulse` class (with a forced reflow, e.g. reading `el.offsetWidth`, so the animation restarts on rapid consecutive triggers) — then unconditionally set `this._lastScore = p.score` at the end of `draw(p)`
 
 **Checkpoint**: User Story 2 complete — score increases have an independent, hard-to-miss visual signal
 
@@ -81,7 +81,7 @@ description: "Task list for 006 shmup hit feedback"
 
 ### Implementation for User Story 3
 
-- [ ] T009 [US3] In `shmup/assets/js/hooks/game_hook.js`: extend the explosion rendering from T005 with a per-`kind` max-radius table (`grunt: 18, tank: 26, boss: 45`, matching `research.md` §4) so the rendered explosion size scales with the kind of the killed enemy
+- [x] T009 [US3] In `shmup/assets/js/hooks/game_hook.js`: extend the explosion rendering from T005 with a per-`kind` max-radius table (`grunt: 18, tank: 26, boss: 45`, matching `research.md` §4) so the rendered explosion size scales with the kind of the killed enemy
 
 **Checkpoint**: User Story 3 complete — boss kills feel proportionally bigger, reinforcing their score bonus
 
@@ -91,10 +91,10 @@ description: "Task list for 006 shmup hit feedback"
 
 **Purpose**: Reset đúng khi vào ván mới, xác nhận regression, quickstart.
 
-- [ ] T010 [US1] [US2] In `shmup/assets/js/hooks/game_hook.js`'s `updated()`: detect transition **into** `:playing` (mirroring the existing splash-transition detection pattern) and reset `this.explosions = []` and `this._lastScore = 0` there, so a new round never inherits leftover explosions or a stale score baseline from the previous game (per `research.md` §6 and spec edge cases)
-- [ ] T011 [P] Add ExUnit coverage in `shmup/test/shmup/game/simulation_test.exs` for: `kill_events` contains the killed enemy's `x`/`y`/`kind` when a kill happens, `kill_events == []` when nothing was killed that tick, and an enemy culled offscreen (never reaching hp 0) never appears in `kill_events`
-- [ ] T012 [P] Confirm `GameState.new_playing/0` resets `kill_events` to `[]` — add/confirm an assertion in the existing reset test in `simulation_test.exs`
-- [ ] T013 Run `cd shmup && mix test` and manual validation steps in `specs/006-shmup-hit-feedback/quickstart.md`
+- [x] T010 [US1] [US2] In `shmup/assets/js/hooks/game_hook.js`'s `updated()`: detect transition **into** `:playing` (mirroring the existing splash-transition detection pattern) and reset `this.explosions = []` and `this._lastScore = 0` there, so a new round never inherits leftover explosions or a stale score baseline from the previous game (per `research.md` §6 and spec edge cases)
+- [x] T011 [P] Add ExUnit coverage in `shmup/test/shmup/game/simulation_test.exs` for: `kill_events` contains the killed enemy's `x`/`y`/`kind` when a kill happens, `kill_events == []` when nothing was killed that tick, and an enemy culled offscreen (never reaching hp 0) never appears in `kill_events`
+- [x] T012 [P] Confirm `GameState.new_playing/0` resets `kill_events` to `[]` — add/confirm an assertion in the existing reset test in `simulation_test.exs`
+- [x] T013 Run `cd shmup && mix test` and manual validation steps in `specs/006-shmup-hit-feedback/quickstart.md`
 
 ---
 

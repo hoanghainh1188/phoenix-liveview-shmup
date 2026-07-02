@@ -25,7 +25,8 @@ defmodule Shmup.Game.GameState do
     pending_input: %{cx: 0.0, cy: 0.0, primary: false},
     difficulty_tier: 0,
     play_tick: 0,
-    next_boss_tier: 1
+    next_boss_tier: 1,
+    kill_events: []
   ]
 
   @doc "Logical playfield size in game units (matches hook canvas coordinate system)."
@@ -76,7 +77,8 @@ defmodule Shmup.Game.GameState do
       pending_input: %{cx: w / 2, cy: h - 60, primary: false},
       difficulty_tier: 0,
       play_tick: 0,
-      next_boss_tier: Enemies.boss_tier_interval()
+      next_boss_tier: Enemies.boss_tier_interval(),
+      kill_events: []
     }
   end
 

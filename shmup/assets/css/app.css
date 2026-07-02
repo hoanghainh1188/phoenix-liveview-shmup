@@ -103,3 +103,15 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* Score confirmation pulse — triggered by game_hook.js whenever the score increases,
+   an independent signal from the canvas kill-explosion for confirming a real hit. */
+@keyframes score-pulse {
+  0% { transform: scale(1); color: #ffffff; }
+  30% { transform: scale(1.35); color: #fbbf24; }
+  100% { transform: scale(1); color: #ffffff; }
+}
+
+.score-pulse {
+  animation: score-pulse 350ms ease-out;
+}

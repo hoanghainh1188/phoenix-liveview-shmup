@@ -5,6 +5,11 @@ const GW = 480
 const GH = 640
 // Match server tick (~20 Hz) — avoid flooding the LiveView channel with 60 input events/sec.
 const INPUT_INTERVAL_MS = 50
+const ENEMY_COLORS = { grunt: "#a78bfa", tank: "#f97316", boss: "#ef4444" }
+// Client-only: how long a kill-confirmation burst stays on screen (wall-clock, not sim time —
+// this is a one-shot presentation effect, not server state, unlike the invulnerability blink).
+const EXPLOSION_LIFETIME_MS = 350
+const EXPLOSION_MAX_RADIUS = { grunt: 18, tank: 26, boss: 45 }
 
 export const GameHook = {
   mounted() {
@@ -14,6 +19,8 @@ export const GameHook = {
     this.raf = null
     this._prevPhase = this.el.dataset.phase
     this._lastInputSent = 0
+    this.explosions = []
+    this._lastScore = 0
 
     this.onMove = (e) => this.trackPointer(e)
     this.onDown = () => {
@@ -61,6 +68,13 @@ export const GameHook = {
     // Do not fire on every splash re-render — that caused an assign↔push loop and console errors.
     if (phase === "splash" && this._prevPhase !== "splash") {
       this.pushEvent("client_high_score", { value: readHighScore() })
+    }
+    // Entering a fresh round: drop any leftover explosions and reset the score baseline so the
+    // first kill of the new game still triggers a pulse (it wouldn't if compared against the
+    // previous round's final score).
+    if (phase === "playing" && this._prevPhase !== "playing") {
+      this.explosions = []
+      this._lastScore = 0
     }
     this._prevPhase = phase
   },
@@ -149,9 +163,50 @@ export const GameHook = {
     }
     ;(p.player_bullets || []).forEach((b) => drawBox(b, "#fbbf24"))
     ;(p.enemy_bullets || []).forEach((b) => drawBox(b, "#f87171"))
+    ;(p.enemies || []).forEach((e) => drawBox(e, ENEMY_COLORS[e.kind] || "#a78bfa"))
 
-    const enemyColors = { grunt: "#a78bfa", tank: "#f97316", boss: "#ef4444" }
-    ;(p.enemies || []).forEach((e) => drawBox(e, enemyColors[e.kind] || "#a78bfa"))
+    this.drawExplosions(p.kill_events)
+    this.updateScorePulse(p.score)
+  },
+
+  /**
+   * Kill-confirmation bursts: server only tells us *that* and *where* a kill happened this
+   * tick (kill_events), never anything culled offscreen. Age/lifetime is tracked in wall-clock
+   * time here since this is a one-shot presentation effect, not ongoing server state.
+   */
+  drawExplosions(killEvents) {
+    const now = performance.now()
+    ;(killEvents || []).forEach((k) => {
+      this.explosions.push({ x: k.x, y: k.y, kind: k.kind, bornAt: now })
+    })
+
+    this.explosions = this.explosions.filter((e) => now - e.bornAt < EXPLOSION_LIFETIME_MS)
+
+    const ctx = this.ctx
+    this.explosions.forEach((e) => {
+      const age = (now - e.bornAt) / EXPLOSION_LIFETIME_MS
+      const maxRadius = EXPLOSION_MAX_RADIUS[e.kind] ?? EXPLOSION_MAX_RADIUS.grunt
+      const radius = maxRadius * age
+      ctx.globalAlpha = Math.max(0, 1 - age)
+      ctx.fillStyle = ENEMY_COLORS[e.kind] || "#facc15"
+      ctx.beginPath()
+      ctx.arc(e.x, e.y, radius, 0, Math.PI * 2)
+      ctx.fill()
+    })
+    ctx.globalAlpha = 1
+  },
+
+  /** Independent confirmation signal alongside the explosion: pulse the DOM score line. */
+  updateScorePulse(score) {
+    if (typeof score === "number" && score > this._lastScore) {
+      const el = this.el.querySelector("#score-value")
+      if (el) {
+        el.classList.remove("score-pulse")
+        void el.offsetWidth // force reflow so the animation restarts on rapid re-triggers
+        el.classList.add("score-pulse")
+      }
+    }
+    if (typeof score === "number") this._lastScore = score
   },
 
   onPhase(p) {
