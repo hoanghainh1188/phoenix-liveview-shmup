@@ -1,5 +1,8 @@
 ﻿# Pin Erlang/Elixir for Phoenix shmup — run `mise install` at repo root.
 # Versions align with Docker image used to scaffold `shmup/` (Elixir 1.18 / OTP 27+).
+# Erlang pinned to 27.3.4.13 (not 27.2): OTP 27.2's :ssl rejects the intermediate
+# cert Let's Encrypt's newer short-lived chain (ISRG Root YR / "YR2") presents for
+# hex.pm, failing `mix setup`/`mix deps.get` with a key_usage_mismatch TLS alert.
 [tools]
-erlang = "27.2"
+erlang = "27.3.4.13"
 elixir = "1.18.2-otp-27"
