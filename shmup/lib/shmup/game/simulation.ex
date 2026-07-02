@@ -1,10 +1,14 @@
 defmodule Shmup.Game.Simulation do
   @moduledoc false
 
-  alias Shmup.Game.{Collision, Difficulty, GameState, Physics}
+  alias Shmup.Game.{Collision, Difficulty, GameState, Physics, Powerups}
 
   @player_fire_cooldown 10
   @points_per_kill 10
+  @powerup_kinds [:rapid_fire, :multi_shot, :shield]
+  @powerup_size 20
+  @multi_shot_vx_offsets [-2.5, 0.0, 2.5]
+  @drop_hash_multiplier 2_654_435_761
 
   def step(%GameState{phase: p} = s) when p != :playing, do: s
 
@@ -14,12 +18,15 @@ defmodule Shmup.Game.Simulation do
     |> advance_play_time()
     |> apply_input()
     |> tick_cooldowns()
+    |> tick_effects()
     |> maybe_spawn_enemy()
     |> fire_player_bullet()
     |> move_all()
     |> enemy_fire()
     |> resolve_hits()
+    |> resolve_powerup_pickup()
     |> cull_offscreen()
+    |> absorb_shield()
     |> check_player_death()
   end
 
@@ -48,6 +55,24 @@ defmodule Shmup.Game.Simulation do
     pcd = max(0, s.player_fire_cd - 1)
     esc = max(0, s.enemy_spawn_cd - 1)
     %{s | player_fire_cd: pcd, enemy_spawn_cd: esc}
+  end
+
+  defp tick_effects(%GameState{play_tick: pt, player: pl} = s) do
+    active =
+      pl.active_effects
+      |> Enum.reject(fn {_kind, expires_at} -> expires_at <= pt end)
+      |> Map.new()
+
+    player = %{pl | active_effects: active}
+
+    player =
+      if player.shield and player.shield_expires_at <= pt do
+        %{player | shield: false, shield_expires_at: nil}
+      else
+        player
+      end
+
+    %{s | player: player}
   end
 
   defp maybe_spawn_enemy(%GameState{enemy_spawn_cd: cd} = s) when cd != 0, do: s
@@ -114,25 +139,38 @@ defmodule Shmup.Game.Simulation do
   defp fire_player_bullet(%GameState{player_fire_cd: cd} = s) when cd > 0, do: s
 
   defp fire_player_bullet(%GameState{player: pl} = s) do
-    b = %{
-      x: pl.x,
-      y: pl.y - pl.h / 2 - 6,
-      w: 4,
-      h: 10,
-      vy: -14.0
-    }
+    cooldown =
+      if Map.has_key?(pl.active_effects, :rapid_fire) do
+        Powerups.rapid_fire_cooldown_ticks()
+      else
+        @player_fire_cooldown
+      end
+
+    new_bullets = spawn_player_bullets(pl)
 
     %{
       s
-      | player_bullets: [b | s.player_bullets],
-        player_fire_cd: @player_fire_cooldown
+      | player_bullets: new_bullets ++ s.player_bullets,
+        player_fire_cd: cooldown
     }
+  end
+
+  defp spawn_player_bullets(%{active_effects: effects} = pl) do
+    top_y = pl.y - pl.h / 2 - 6
+
+    if Map.has_key?(effects, :multi_shot) do
+      Enum.map(@multi_shot_vx_offsets, fn vx ->
+        %{x: pl.x, y: top_y, w: 4, h: 10, vy: -14.0, vx: vx}
+      end)
+    else
+      [%{x: pl.x, y: top_y, w: 4, h: 10, vy: -14.0}]
+    end
   end
 
   defp move_all(%GameState{} = s) do
     pbs =
       Enum.map(s.player_bullets, fn b ->
-        %{b | y: b.y + b.vy}
+        %{b | x: b.x + Map.get(b, :vx, 0.0), y: b.y + b.vy}
       end)
 
     ebs =
@@ -147,7 +185,12 @@ defmodule Shmup.Game.Simulation do
         Physics.step_enemy(e, pt)
       end)
 
-    %{s | player_bullets: pbs, enemy_bullets: ebs, enemies: ens}
+    pus =
+      Enum.map(s.powerups, fn p ->
+        %{p | y: p.y + p.vy}
+      end)
+
+    %{s | player_bullets: pbs, enemy_bullets: ebs, enemies: ens, powerups: pus}
   end
 
   defp enemy_fire(%GameState{enemies: []} = s), do: s
@@ -175,7 +218,7 @@ defmodule Shmup.Game.Simulation do
   end
 
   defp resolve_hits(%GameState{} = s) do
-    {pbs, ens, pts} =
+    {pbs, ens, pts, killed} =
       Collision.resolve_player_bullets_vs_enemies(
         s.player_bullets,
         s.enemies,
@@ -183,13 +226,76 @@ defmodule Shmup.Game.Simulation do
       )
 
     %{s | player_bullets: pbs, enemies: ens, score: s.score + pts}
+    |> maybe_spawn_powerups(killed)
+  end
+
+  defp maybe_spawn_powerups(s, killed_enemies) do
+    Enum.reduce(killed_enemies, s, &maybe_spawn_powerup(&2, &1))
+  end
+
+  defp maybe_spawn_powerup(s, enemy) do
+    roll = rem(enemy.id * @drop_hash_multiplier, 100)
+
+    cond do
+      roll >= Powerups.drop_chance_pct() ->
+        s
+
+      length(s.powerups) >= Powerups.max_falling_powerups() ->
+        s
+
+      true ->
+        kind = Enum.at(@powerup_kinds, rem(enemy.id, length(@powerup_kinds)))
+
+        powerup = %{
+          id: s.next_powerup_id,
+          x: enemy.x,
+          y: enemy.y,
+          w: @powerup_size,
+          h: @powerup_size,
+          vy: Powerups.fall_speed(),
+          kind: kind
+        }
+
+        %{s | powerups: [powerup | s.powerups], next_powerup_id: s.next_powerup_id + 1}
+    end
+  end
+
+  defp resolve_powerup_pickup(%GameState{} = s) do
+    {kept, picked_kinds} = Collision.resolve_player_vs_powerups(s.powerups, s.player)
+    player = Enum.reduce(picked_kinds, s.player, &apply_powerup_effect(&2, &1, s.play_tick))
+    %{s | powerups: kept, player: player}
+  end
+
+  defp apply_powerup_effect(player, :rapid_fire, play_tick) do
+    expires_at = play_tick + Powerups.rapid_fire_duration_ticks()
+    %{player | active_effects: Map.put(player.active_effects, :rapid_fire, expires_at)}
+  end
+
+  defp apply_powerup_effect(player, :multi_shot, play_tick) do
+    expires_at = play_tick + Powerups.multi_shot_duration_ticks()
+    %{player | active_effects: Map.put(player.active_effects, :multi_shot, expires_at)}
+  end
+
+  defp apply_powerup_effect(player, :shield, play_tick) do
+    %{player | shield: true, shield_expires_at: play_tick + Powerups.shield_duration_ticks()}
   end
 
   defp cull_offscreen(%GameState{width: _w, height: h} = s) do
     pbs = Enum.filter(s.player_bullets, fn b -> b.y > -30 end)
     ebs = Enum.filter(s.enemy_bullets, fn b -> b.y < h + 40 end)
     ens = Enum.filter(s.enemies, fn e -> e.y < h + 80 end)
-    %{s | player_bullets: pbs, enemy_bullets: ebs, enemies: ens}
+    pus = Enum.filter(s.powerups, fn p -> p.y < h + 80 end)
+    %{s | player_bullets: pbs, enemy_bullets: ebs, enemies: ens, powerups: pus}
+  end
+
+  defp absorb_shield(%GameState{} = s) do
+    {ebs, absorbed?} = Collision.absorb_shield_hit(s.enemy_bullets, s.player)
+
+    if absorbed? do
+      %{s | enemy_bullets: ebs, player: %{s.player | shield: false, shield_expires_at: nil}}
+    else
+      s
+    end
   end
 
   defp check_player_death(%GameState{} = s) do

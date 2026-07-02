@@ -85,6 +85,7 @@ defmodule ShmupWeb.GameLive do
 
   # Jason cannot encode enemy :movement tuples — only send drawable fields to the hook.
   @enemy_snapshot_keys [:x, :y, :w, :h, :id, :hp]
+  @powerup_snapshot_keys [:id, :x, :y, :w, :h, :kind]
 
   defp snapshot(%GameState{phase: :playing} = g) do
     %{
@@ -97,7 +98,9 @@ defmodule ShmupWeb.GameLive do
       player: g.player,
       player_bullets: g.player_bullets,
       enemy_bullets: g.enemy_bullets,
-      enemies: Enum.map(g.enemies, &Map.take(&1, @enemy_snapshot_keys))
+      enemies: Enum.map(g.enemies, &Map.take(&1, @enemy_snapshot_keys)),
+      powerups: Enum.map(g.powerups, &Map.take(&1, @powerup_snapshot_keys)),
+      player_effects: player_effects(g.player)
     }
   end
 
@@ -108,6 +111,14 @@ defmodule ShmupWeb.GameLive do
       phase: to_string(phase),
       width: g.width,
       height: g.height
+    }
+  end
+
+  defp player_effects(player) do
+    %{
+      rapid_fire: Map.has_key?(player.active_effects, :rapid_fire),
+      multi_shot: Map.has_key?(player.active_effects, :multi_shot),
+      shield: player.shield
     }
   end
 
@@ -143,7 +154,9 @@ defmodule ShmupWeb.GameLive do
     >
       <%= if @game.phase == :splash do %>
         <h1 class="text-3xl font-bold mb-2">Shmup</h1>
-        <p class="mb-6 text-slate-400">Kỷ lục: <span class="text-amber-400 font-mono"><%= @high_score_display %></span></p>
+        <p class="mb-6 text-slate-400">
+          Kỷ lục: <span class="text-amber-400 font-mono">{@high_score_display}</span>
+        </p>
         <button
           type="button"
           phx-click="start"
@@ -154,7 +167,9 @@ defmodule ShmupWeb.GameLive do
       <% end %>
 
       <%= if @game.phase == :playing do %>
-        <div class="text-sm text-slate-400 mb-2">Điểm: <span class="text-white font-mono"><%= @game.score %></span></div>
+        <div class="text-sm text-slate-400 mb-2">
+          Điểm: <span class="text-white font-mono">{@game.score}</span>
+        </div>
         <canvas
           id="game-canvas"
           width="480"
@@ -166,7 +181,7 @@ defmodule ShmupWeb.GameLive do
       <%= if @game.phase == :game_over do %>
         <div class="flex flex-col items-center gap-4 p-8">
           <h2 class="text-2xl font-bold text-rose-400">Hết trận</h2>
-          <p class="text-lg">Điểm: <span class="font-mono text-amber-300"><%= @game.score %></span></p>
+          <p class="text-lg">Điểm: <span class="font-mono text-amber-300">{@game.score}</span></p>
           <button
             type="button"
             phx-click="to_splash"
