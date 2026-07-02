@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Toolchain
 
-Erlang/Elixir are pinned via **mise** (`.mise.toml`: erlang 27.2, elixir 1.18.2-otp-27). Run `mise install` at the repo root before working.
+Erlang/Elixir are pinned via **mise** (`.mise.toml`: erlang 27.3.4.13, elixir 1.18.2-otp-27). Run `mise install` at the repo root before working. Erlang is pinned above 27.2 specifically because 27.2's `:ssl` rejects hex.pm's current Let's Encrypt certificate chain (`key_usage_mismatch`) — do not downgrade it.
 
 ## Commands
 
@@ -60,4 +60,8 @@ All simulation is pure functions over `%GameState{}` — no processes, no side e
 
 ### Serialization gotcha
 
-Enemy structs carry a `:movement` field that can be a **tuple** (e.g. `{:sine, ...}`), which **Jason cannot encode**. `GameLive.snapshot/1` sends only `@enemy_snapshot_keys` (`[:x, :y, :w, :h, :id, :hp]`) to the client. If you add a client-visible enemy field, add it to that list — never push the raw enemy map through `push_event`.
+Enemy structs carry a `:movement` field that can be a **tuple** (e.g. `{:sine, ...}`), which **Jason cannot encode**. `GameLive.snapshot/1` sends only `@enemy_snapshot_keys` to the client (extended over time — check the current value in `game_live.ex` rather than assuming this doc's original list). If you add a client-visible enemy field, add it to that list — never push the raw enemy map through `push_event`.
+
+## Deployment
+
+`shmup/Dockerfile` (generated via `mix phx.gen.release --docker`) and `render.yaml` (repo root) deploy the app as a single Docker web service on Render.com's free tier — no database, no persistent volume needed. See the root `README.md` "Deploy" section for the click-through steps. If you change `mix.exs` deps or the Erlang/Elixir pins in `.mise.toml`, rebuild the Docker image locally (`cd shmup && docker build -t shmup .`) to confirm the release still compiles before pushing.
