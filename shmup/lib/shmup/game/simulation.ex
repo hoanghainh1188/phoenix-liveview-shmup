@@ -284,7 +284,15 @@ defmodule Shmup.Game.Simulation do
       |> Enum.count(&(&1.kind == :boss))
       |> Kernel.*(Enemies.boss_bonus_points())
 
-    %{s | player_bullets: pbs, enemies: ens, score: s.score + pts + boss_bonus}
+    kill_events = Enum.map(killed, &Map.take(&1, [:x, :y, :kind]))
+
+    %{
+      s
+      | player_bullets: pbs,
+        enemies: ens,
+        score: s.score + pts + boss_bonus,
+        kill_events: kill_events
+    }
     |> maybe_spawn_powerups(killed)
   end
 

@@ -34,6 +34,7 @@ defmodule Shmup.Game.SimulationTest do
     assert state.player.max_hp == Health.max_hp()
     assert state.player.invulnerable_until == nil
     assert state.next_boss_tier == Enemies.boss_tier_interval()
+    assert state.kill_events == []
   end
 
   test "killing an enemy below the drop threshold spawns the deterministic powerup kind" do
@@ -400,5 +401,54 @@ defmodule Shmup.Game.SimulationTest do
 
     assert new_state.enemies == []
     assert new_state.score == 10 + Enemies.boss_bonus_points()
+  end
+
+  test "a real kill produces a kill_event with the enemy's position and kind" do
+    base = GameState.new_playing()
+    enemy = static_enemy(5, 1, :tank)
+    bullet = static_bullet()
+
+    state = struct!(base, enemies: [enemy], player_bullets: [bullet], enemy_spawn_cd: 999)
+
+    new_state = Simulation.step(state)
+
+    assert new_state.enemies == []
+    assert [event] = new_state.kill_events
+    assert event.kind == :tank
+    assert_in_delta event.x, 100.0, 0.001
+    assert_in_delta event.y, 100.0, 0.001
+  end
+
+  test "kill_events is empty when nothing was killed this tick" do
+    base = GameState.new_playing()
+    state = struct!(base, enemy_spawn_cd: 999)
+
+    new_state = Simulation.step(state)
+
+    assert new_state.kill_events == []
+  end
+
+  test "an enemy culled offscreen without being hit never produces a kill_event" do
+    base = GameState.new_playing()
+
+    offscreen_enemy = %{
+      id: 9,
+      x: 10.0,
+      y: base.height + 81.0,
+      w: 32,
+      h: 28,
+      vy: 0.0,
+      vx: 0.0,
+      movement: :straight,
+      hp: 1,
+      kind: :grunt
+    }
+
+    state = struct!(base, enemies: [offscreen_enemy], enemy_spawn_cd: 999)
+
+    new_state = Simulation.step(state)
+
+    assert new_state.enemies == []
+    assert new_state.kill_events == []
   end
 end
