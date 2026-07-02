@@ -100,7 +100,8 @@ defmodule ShmupWeb.GameLive do
       enemy_bullets: g.enemy_bullets,
       enemies: Enum.map(g.enemies, &Map.take(&1, @enemy_snapshot_keys)),
       powerups: Enum.map(g.powerups, &Map.take(&1, @powerup_snapshot_keys)),
-      player_effects: player_effects(g.player)
+      player_effects: player_effects(g.player),
+      player_invulnerable: invulnerable?(g.player, g.play_tick)
     }
   end
 
@@ -121,6 +122,9 @@ defmodule ShmupWeb.GameLive do
       shield: player.shield
     }
   end
+
+  defp invulnerable?(%{invulnerable_until: nil}, _play_tick), do: false
+  defp invulnerable?(%{invulnerable_until: until_tick}, play_tick), do: until_tick > play_tick
 
   defp to_float(v) when is_float(v), do: v
   defp to_float(v) when is_integer(v), do: v * 1.0
@@ -169,6 +173,7 @@ defmodule ShmupWeb.GameLive do
       <%= if @game.phase == :playing do %>
         <div class="text-sm text-slate-400 mb-2">
           Điểm: <span class="text-white font-mono">{@game.score}</span>
+          · Máu: <span class="text-rose-400 font-mono">{@game.player.hp}/{@game.player.max_hp}</span>
         </div>
         <canvas
           id="game-canvas"

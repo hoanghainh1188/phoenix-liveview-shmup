@@ -139,7 +139,14 @@ export const GameHook = {
     const powerupColors = { rapid_fire: "#fb923c", multi_shot: "#38bdf8", shield: "#34d399" }
     ;(p.powerups || []).forEach((pu) => drawBox(pu, powerupColors[pu.kind] || "#facc15"))
 
-    drawBox(p.player, "#38bdf8")
+    if (p.player_invulnerable) {
+      // Blink: alternate visibility by tick parity so the flicker is tied to sim time, not wall clock.
+      ctx.globalAlpha = (p.play_tick ?? p.tick) % 6 < 3 ? 1 : 0.25
+      drawBox(p.player, "#38bdf8")
+      ctx.globalAlpha = 1
+    } else {
+      drawBox(p.player, "#38bdf8")
+    }
     ;(p.player_bullets || []).forEach((b) => drawBox(b, "#fbbf24"))
     ;(p.enemy_bullets || []).forEach((b) => drawBox(b, "#f87171"))
     ;(p.enemies || []).forEach((e) => drawBox(e, "#a78bfa"))

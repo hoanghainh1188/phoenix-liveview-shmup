@@ -1,7 +1,7 @@
 defmodule Shmup.Game.SimulationTest do
   use ExUnit.Case, async: true
 
-  alias Shmup.Game.{GameState, Powerups, Simulation}
+  alias Shmup.Game.{GameState, Health, Powerups, Simulation}
 
   defp static_enemy(id, hp) do
     %{id: id, x: 100.0, y: 100.0, w: 32, h: 28, vy: 0.0, vx: 0.0, movement: :straight, hp: hp}
@@ -11,7 +11,7 @@ defmodule Shmup.Game.SimulationTest do
     %{x: 100.0, y: 100.0, w: 4, h: 10, vy: 0.0}
   end
 
-  test "new_playing/0 never inherits powerup state from a previous round" do
+  test "new_playing/0 never inherits powerup or health state from a previous round" do
     state = GameState.new_playing()
 
     assert state.powerups == []
@@ -19,6 +19,9 @@ defmodule Shmup.Game.SimulationTest do
     assert state.player.active_effects == %{}
     assert state.player.shield == false
     assert state.player.shield_expires_at == nil
+    assert state.player.hp == Health.max_hp()
+    assert state.player.max_hp == Health.max_hp()
+    assert state.player.invulnerable_until == nil
   end
 
   test "killing an enemy below the drop threshold spawns the deterministic powerup kind" do
@@ -175,9 +178,11 @@ defmodule Shmup.Game.SimulationTest do
     assert new_state.player.shield == false
     assert new_state.player.shield_expires_at == nil
     assert new_state.enemy_bullets == []
+    assert new_state.player.hp == base.player.hp
+    assert new_state.player.invulnerable_until == nil
   end
 
-  test "without a shield, an enemy bullet still ends the game as before" do
+  test "without a shield, an enemy bullet costs one hp instead of ending the game outright" do
     base = GameState.new_playing()
     bullet = %{x: base.player.x, y: base.player.y, w: 4, h: 10, vy: 0.0}
 
@@ -190,7 +195,114 @@ defmodule Shmup.Game.SimulationTest do
 
     new_state = Simulation.step(state)
 
+    assert new_state.phase == :playing
+    assert new_state.player.hp == base.player.max_hp - 1
+    assert new_state.player.invulnerable_until == 1 + Health.invulnerability_duration_ticks()
+  end
+
+  test "multiple enemy bullets overlapping in the same tick only cost one hp" do
+    base = GameState.new_playing()
+    b1 = %{x: base.player.x, y: base.player.y, w: 4, h: 10, vy: 0.0}
+    b2 = %{x: base.player.x, y: base.player.y, w: 4, h: 10, vy: 0.0}
+
+    state =
+      struct!(base,
+        enemy_bullets: [b1, b2],
+        pending_input: %{cx: base.player.x, cy: base.player.y, primary: false},
+        enemy_spawn_cd: 999
+      )
+
+    new_state = Simulation.step(state)
+
+    assert new_state.player.hp == base.player.max_hp - 1
+  end
+
+  test "invulnerability blocks further hp loss until it expires" do
+    base = GameState.new_playing()
+    player = %{base.player | hp: 2, invulnerable_until: 50}
+    bullet = %{x: player.x, y: player.y, w: 4, h: 10, vy: 0.0}
+
+    still_invulnerable =
+      struct!(base,
+        play_tick: 40,
+        player: player,
+        enemy_bullets: [bullet],
+        pending_input: %{cx: player.x, cy: player.y, primary: false},
+        enemy_spawn_cd: 999
+      )
+
+    new_state = Simulation.step(still_invulnerable)
+
+    assert new_state.play_tick == 41
+    assert new_state.player.hp == 2
+    assert new_state.player.invulnerable_until == 50
+
+    expired =
+      struct!(base,
+        play_tick: 50,
+        player: player,
+        enemy_bullets: [bullet],
+        pending_input: %{cx: player.x, cy: player.y, primary: false},
+        enemy_spawn_cd: 999
+      )
+
+    new_state2 = Simulation.step(expired)
+
+    assert new_state2.play_tick == 51
+    assert new_state2.player.hp == 1
+    assert new_state2.player.invulnerable_until == 51 + Health.invulnerability_duration_ticks()
+  end
+
+  test "the game only ends once hp reaches zero" do
+    base = GameState.new_playing()
+    player = %{base.player | hp: 1, invulnerable_until: nil}
+    bullet = %{x: player.x, y: player.y, w: 4, h: 10, vy: 0.0}
+
+    state =
+      struct!(base,
+        player: player,
+        enemy_bullets: [bullet],
+        pending_input: %{cx: player.x, cy: player.y, primary: false},
+        enemy_spawn_cd: 999
+      )
+
+    new_state = Simulation.step(state)
+
+    assert new_state.player.hp == 0
     assert new_state.phase == :game_over
+  end
+
+  test "shield absorption then a later unshielded hit both behave correctly in sequence" do
+    base = GameState.new_playing()
+    shielded_player = %{base.player | shield: true, shield_expires_at: 100_000}
+    bullet = %{x: shielded_player.x, y: shielded_player.y, w: 4, h: 10, vy: 0.0}
+
+    shielded_state =
+      struct!(base,
+        player: shielded_player,
+        enemy_bullets: [bullet],
+        pending_input: %{cx: shielded_player.x, cy: shielded_player.y, primary: false},
+        enemy_spawn_cd: 999
+      )
+
+    after_shield = Simulation.step(shielded_state)
+
+    assert after_shield.player.hp == base.player.max_hp
+    assert after_shield.player.invulnerable_until == nil
+    assert after_shield.player.shield == false
+
+    bullet2 = %{x: after_shield.player.x, y: after_shield.player.y, w: 4, h: 10, vy: 0.0}
+
+    unshielded_state =
+      struct!(after_shield,
+        enemy_bullets: [bullet2],
+        pending_input: %{cx: after_shield.player.x, cy: after_shield.player.y, primary: false}
+      )
+
+    after_hit = Simulation.step(unshielded_state)
+
+    assert after_hit.player.hp == base.player.max_hp - 1
+    assert after_hit.player.invulnerable_until != nil
   end
 
   test "falling powerups are culled once they pass the bottom of the playfield" do

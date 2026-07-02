@@ -25,7 +25,7 @@ description: "Task list for 004 shmup player health"
 
 **Purpose**: Xác nhận môi trường và đường dẫn trùng plan.
 
-- [ ] T001 Verify `shmup/mix.exs` exists and `cd shmup && mix compile` succeeds per `specs/004-shmup-player-health/quickstart.md`
+- [x] T001 Verify `shmup/mix.exs` exists and `cd shmup && mix compile` succeeds per `specs/004-shmup-player-health/quickstart.md`
 
 ---
 
@@ -35,8 +35,8 @@ description: "Task list for 004 shmup player health"
 
 **⚠️ CRITICAL**: Không triển khai US1–US3 cho đến khi phase này hoàn tất.
 
-- [ ] T002 [P] Create `shmup/lib/shmup/game/health.ex` exporting parameter helpers (`max_hp/0`, `invulnerability_duration_ticks/0`) aligned with `specs/004-shmup-player-health/research.md` §7
-- [ ] T003 [P] Extend `shmup/lib/shmup/game/game_state.ex`: add `hp: Health.max_hp()`, `max_hp: Health.max_hp()`, `invulnerable_until: nil` to the player map built in `new_playing/0` per `specs/004-shmup-player-health/data-model.md`
+- [x] T002 [P] Create `shmup/lib/shmup/game/health.ex` exporting parameter helpers (`max_hp/0`, `invulnerability_duration_ticks/0`) aligned with `specs/004-shmup-player-health/research.md` §7
+- [x] T003 [P] Extend `shmup/lib/shmup/game/game_state.ex`: add `hp: Health.max_hp()`, `max_hp: Health.max_hp()`, `invulnerable_until: nil` to the player map built in `new_playing/0` per `specs/004-shmup-player-health/data-model.md`
 
 **Checkpoint**: Foundation ready — user story implementation can begin
 
@@ -50,9 +50,9 @@ description: "Task list for 004 shmup player health"
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] In `shmup/lib/shmup/game/simulation.ex`: add a new private stage `apply_damage/1`, called right after `absorb_shield/1` in `step/1`'s pipeline — when `Collision.enemy_hits_player?(s.enemy_bullets, s.player)` is true and the player is not currently invulnerable (see T007 for the invulnerability check, land as a no-op guard clause here first), decrement `player.hp` by 1 (floor at 0)
-- [ ] T005 [US1] In `shmup/lib/shmup/game/simulation.ex`: replace `check_player_death/1`'s condition — it must now check `player.hp <= 0` instead of calling `Collision.enemy_hits_player?/2` directly (that check has moved into `apply_damage/1`)
-- [ ] T006 [P] [US1] In `shmup/lib/shmup_web/live/game_live.ex`: add a "Máu: X/Y" line to the `:playing` branch of `render/1`, reading `@game.player.hp` / `@game.player.max_hp` directly from assigns (no snapshot/JS involvement needed for this line)
+- [x] T004 [US1] In `shmup/lib/shmup/game/simulation.ex`: add a new private stage `apply_damage/1`, called right after `absorb_shield/1` in `step/1`'s pipeline — when `Collision.enemy_hits_player?(s.enemy_bullets, s.player)` is true and the player is not currently invulnerable (see T007 for the invulnerability check, land as a no-op guard clause here first), decrement `player.hp` by 1 (floor at 0)
+- [x] T005 [US1] In `shmup/lib/shmup/game/simulation.ex`: replace `check_player_death/1`'s condition — it must now check `player.hp <= 0` instead of calling `Collision.enemy_hits_player?/2` directly (that check has moved into `apply_damage/1`)
+- [x] T006 [P] [US1] In `shmup/lib/shmup_web/live/game_live.ex`: add a "Máu: X/Y" line to the `:playing` branch of `render/1`, reading `@game.player.hp` / `@game.player.max_hp` directly from assigns (no snapshot/JS involvement needed for this line)
 
 **Checkpoint**: User Story 1 delivers multi-hit survival with a visible HP counter (invulnerability not yet implemented — repeated bullets in the same tick may still over-trigger until Phase 4 lands, per research.md §3–4 the fix belongs there)
 
@@ -66,9 +66,9 @@ description: "Task list for 004 shmup player health"
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] In `shmup/lib/shmup/game/simulation.ex`: extend `apply_damage/1` (from T004) with the invulnerability guard — skip the hp decrement entirely (and leave `enemy_bullets` untouched) when `player.invulnerable_until` is set and `player.invulnerable_until > play_tick`; otherwise, on a hit, also set `invulnerable_until = play_tick + Health.invulnerability_duration_ticks()`
-- [ ] T008 [P] [US2] In `shmup/lib/shmup_web/live/game_live.ex`: add `player_invulnerable` (boolean, derived from `player.invulnerable_until > g.play_tick`) to `snapshot/1`'s `:playing` branch per `specs/004-shmup-player-health/contracts/liveview-hook-events.md`
-- [ ] T009 [P] [US2] In `shmup/assets/js/hooks/game_hook.js`: when `frame` payload has `player_invulnerable: true`, blink the player box (oscillate `ctx.globalAlpha` by `tick`/`play_tick` parity or a modulo) instead of drawing it fully opaque; reset `globalAlpha` to 1 afterward so it doesn't leak into other draws
+- [x] T007 [US2] In `shmup/lib/shmup/game/simulation.ex`: extend `apply_damage/1` (from T004) with the invulnerability guard — skip the hp decrement entirely (and leave `enemy_bullets` untouched) when `player.invulnerable_until` is set and `player.invulnerable_until > play_tick`; otherwise, on a hit, also set `invulnerable_until = play_tick + Health.invulnerability_duration_ticks()`
+- [x] T008 [P] [US2] In `shmup/lib/shmup_web/live/game_live.ex`: add `player_invulnerable` (boolean, derived from `player.invulnerable_until > g.play_tick`) to `snapshot/1`'s `:playing` branch per `specs/004-shmup-player-health/contracts/liveview-hook-events.md`
+- [x] T009 [P] [US2] In `shmup/assets/js/hooks/game_hook.js`: when `frame` payload has `player_invulnerable: true`, blink the player box (oscillate `ctx.globalAlpha` by `tick`/`play_tick` parity or a modulo) instead of drawing it fully opaque; reset `globalAlpha` to 1 afterward so it doesn't leak into other draws
 
 **Checkpoint**: User Story 2 complete — invulnerability window prevents rapid-fire HP loss and is visually distinguishable
 
@@ -82,8 +82,8 @@ description: "Task list for 004 shmup player health"
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Verify (no production code change expected — this task is a regression-safety checkpoint) that the pipeline order in `shmup/lib/shmup/game/simulation.ex`'s `step/1` keeps `absorb_shield/1` strictly before `apply_damage/1`, per `specs/004-shmup-player-health/data-model.md` — if T004/T007 landed in a different order, fix it here
-- [ ] T011 [US3] Add ExUnit coverage in `shmup/test/shmup/game/simulation_test.exs` proving: shield absorption leaves `hp`/`invulnerable_until` unchanged for that tick, and a subsequent unshielded hit (no active shield, no invulnerability) decrements `hp` and activates invulnerability as usual
+- [x] T010 [US3] Verify (no production code change expected — this task is a regression-safety checkpoint) that the pipeline order in `shmup/lib/shmup/game/simulation.ex`'s `step/1` keeps `absorb_shield/1` strictly before `apply_damage/1`, per `specs/004-shmup-player-health/data-model.md` — if T004/T007 landed in a different order, fix it here
+- [x] T011 [US3] Add ExUnit coverage in `shmup/test/shmup/game/simulation_test.exs` proving: shield absorption leaves `hp`/`invulnerable_until` unchanged for that tick, and a subsequent unshielded hit (no active shield, no invulnerability) decrements `hp` and activates invulnerability as usual
 
 **Checkpoint**: User Story 3 complete — shield and HP systems compose correctly, verified by test
 
@@ -93,8 +93,8 @@ description: "Task list for 004 shmup player health"
 
 **Purpose**: Xác nhận regression toàn diện và quickstart.
 
-- [ ] T012 [P] Ensure `GameState.new_playing/0` resets `hp`/`max_hp`/`invulnerable_until` to defaults every round (FR-010) — add/confirm an ExUnit assertion in `shmup/test/shmup/game/simulation_test.exs` alongside the existing 003 reset test
-- [ ] T013 Run `cd shmup && mix test` and manual validation steps in `specs/004-shmup-player-health/quickstart.md`
+- [x] T012 [P] Ensure `GameState.new_playing/0` resets `hp`/`max_hp`/`invulnerable_until` to defaults every round (FR-010) — add/confirm an ExUnit assertion in `shmup/test/shmup/game/simulation_test.exs` alongside the existing 003 reset test
+- [x] T013 Run `cd shmup && mix test` and manual validation steps in `specs/004-shmup-player-health/quickstart.md`
 
 ---
 
